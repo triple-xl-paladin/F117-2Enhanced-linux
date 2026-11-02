@@ -3,6 +3,11 @@
 
 # Build output and copied binaries
 build*/
+
+# Linux build directories (build*/ above matches; listed for clarity)
+f117port/build/
+f117port/build-release/
+f117port/build-debug/
 /release/
 *.exe
 *.dll
@@ -15,3 +20,5 @@ __pycache__/
 
 # Junction to the faithful repo (unpacked original executables for the tests)
 /work/
+
+opencode.txt

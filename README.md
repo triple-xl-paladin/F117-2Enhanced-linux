@@ -1,5 +1,11 @@
 # F-117A Enhanced — SDL3
 
+This fork includes a build script to build the project for linux instead of windows. 
+
+See [BUILDING-linux.md](BUILDING-linux.md) for details.
+
+The final binary can be found under f117port/build.
+
 An enhanced native port of MicroProse's *F-117A Nighthawk Stealth Fighter 2.0* (1991), built on the faithful
 SDL3 port ([F117-2](https://github.com/kylofon/F117-2), v0.1.0). Not an emulator. The original game files are not included.
 Goal: a sharper, smoother game (higher resolution, higher frame rate) with the original art unchanged.
@@ -60,6 +66,9 @@ python tools/make_release.py      # clean Release build with the launcher, ctest
 Needs CMake 3.24, a C11 compiler and SDL 3 (MSYS2 `mingw64`: `mingw-w64-x86_64-sdl3`, and
 `mingw-w64-x86_64-wxwidgets3.2-msw` for the launcher; `-DF117_LAUNCHER=OFF` skips it). The program is
 `f117port/build/f117-enhanced.exe`. Tests that need the game files skip themselves when `Game/` is missing.
+
+Linux: see `BUILDING-linux.md` — `./build.sh` or `make`; the launcher is off by default there and
+needs `libwxgtk3.2-dev` (or equivalent) to enable.
 
 ## Launcher
 

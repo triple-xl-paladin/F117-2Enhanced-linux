@@ -259,19 +259,30 @@ bool host_trace(void)
 static int snap_n;
 static Uint64 snap_last_ns;
 
+/* The plain SDL3 3.2.x core has no image writer (no SDL_SavePNG); some SDL3 builds do — the build
+   sets F117_SDL_HAS_SAVE_PNG (CMakeLists.txt). */
+#if F117_SDL_HAS_SAVE_PNG
+bool SDL_SavePNG(SDL_Surface *surface, const char *file);
+#endif
+
 static void save_snapshot(const char *dir, const char *tag)
 {
     SDL_Surface *s = SDL_CreateSurfaceFrom(frame_w, frame_h, SDL_PIXELFORMAT_XRGB8888, frame, frame_w * 4);
     if (!s) return;
-    char path[768];
-    if (tag) SDL_snprintf(path, sizeof path, "%s/snap%04d_%s.png", dir, snap_n++, tag);
-    else SDL_snprintf(path, sizeof path, "%s/snap%04d.png", dir, snap_n++);
-    if (!SDL_SavePNG(s, path)) {
-        char *bmp = NULL;                                 /* PNG writer unavailable: BMP */
-        SDL_asprintf(&bmp, "%.*s.bmp", (int)(strlen(path) - 4), path);
-        if (bmp) SDL_SaveBMP(s, bmp);
-        SDL_free(bmp);
+    char base[768];
+    if (tag) SDL_snprintf(base, sizeof base, "%s/snap%04d_%s", dir, snap_n++, tag);
+    else SDL_snprintf(base, sizeof base, "%s/snap%04d", dir, snap_n++);
+    char path[784];
+#if F117_SDL_HAS_SAVE_PNG
+    SDL_snprintf(path, sizeof path, "%s.png", base);
+    if (!SDL_SavePNG(s, path)) {                         /* PNG write failed: BMP */
+        SDL_snprintf(path, sizeof path, "%s.bmp", base);
+        SDL_SaveBMP(s, path);
     }
+#else                                                     /* this SDL3 has no PNG writer: BMP */
+    SDL_snprintf(path, sizeof path, "%s.bmp", base);
+    SDL_SaveBMP(s, path);
+#endif
     SDL_DestroySurface(s);
     snap_last_ns = SDL_GetTicksNS();
     if (host_trace()) fprintf(stderr, "[host] snapshot %s\n", path);

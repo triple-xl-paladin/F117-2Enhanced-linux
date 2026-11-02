@@ -10,6 +10,21 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 find_package(SDL3 REQUIRED CONFIG)
 
+# The plain SDL3 3.2.x core has no image writer (no SDL_SavePNG); some SDL3 builds do. If the library
+# has it the snapshots (F117_SNAPSHOT_DIR) use it, otherwise host.c falls back to BMP.
+include(CheckSymbolExists)
+get_target_property(_f117_sdl3_lib SDL3::SDL3 IMPORTED_LOCATION)
+list(GET _f117_sdl3_lib 0 _f117_sdl3_lib)
+set(CMAKE_REQUIRED_LIBRARIES "${_f117_sdl3_lib}")
+check_symbol_exists(SDL_SavePNG "" F117_SDL_HAS_SAVE_PNG)
+unset(CMAKE_REQUIRED_LIBRARIES)
+unset(_f117_sdl3_lib)
+if(NOT F117_SDL_HAS_SAVE_PNG)
+    set(F117_SDL_HAS_SAVE_PNG 0)
+else()
+    set(F117_SDL_HAS_SAVE_PNG 1)
+endif()
+
 # Nuked-OPL3 (LGPL-2.1), built as its own library and linked in; see third_party/nuked-opl3/README.md
 # (the repository's, one level up).
 add_library(nuked_opl3 STATIC ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/nuked-opl3/opl3.c)
@@ -30,6 +45,10 @@ add_executable(f117 ${F117_SOURCES})
 target_include_directories(f117 PRIVATE src src/gen)
 set_target_properties(f117 PROPERTIES OUTPUT_NAME f117-enhanced)   # ENH: the Enhanced executable
 target_link_libraries(f117 PRIVATE SDL3::SDL3 nuked_opl3)
+target_compile_definitions(f117 PRIVATE F117_SDL_HAS_SAVE_PNG=${F117_SDL_HAS_SAVE_PNG})
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_link_libraries(f117 PRIVATE m)   # libm (exp, floor, sin, cos, atan in the enhanced code)
+endif()
 if(MSVC)
     target_compile_options(f117 PRIVATE /W3)
 else()
@@ -303,7 +322,13 @@ foreach(t ${F117_ALL_TESTS})
 endforeach()
 
 # ENH: S5.1, the launcher (f117-enhanced-launcher.exe, wxWidgets 3.2, built beside f117-enhanced.exe). -DF117_LAUNCHER=OFF skips it.
-option(F117_LAUNCHER "Also build the launcher, f117-enhanced-launcher (wxWidgets)" ON)
+# Off by default except on Windows: it is a wxWidgets GUI and needs wxWidgets 3.2 installed (see BUILDING-linux.md).
+if(WIN32)
+    set(F117_LAUNCHER_DEFAULT ON)
+else()
+    set(F117_LAUNCHER_DEFAULT OFF)
+endif()
+option(F117_LAUNCHER "Also build the launcher, f117-enhanced-launcher (wxWidgets)" ${F117_LAUNCHER_DEFAULT})
 if(F117_LAUNCHER)
     add_subdirectory(launcher)
     if(Python3_Interpreter_FOUND)
